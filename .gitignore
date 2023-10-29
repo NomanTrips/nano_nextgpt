@@ -1,0 +1,7 @@
+# Ignore everything in the ckpt directory
+ckpt/*
+
+# But not the folder itself, so we add a dummy file inside it
+!ckpt/.gitkeep
+
+__pycache__
