@@ -5,3 +5,6 @@ ckpt/*
 !ckpt/.gitkeep
 
 __pycache__
+
+data/*
+wandb/*

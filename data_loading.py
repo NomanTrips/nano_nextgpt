@@ -63,6 +63,7 @@ def collate_fn(batch):
         batch_label_ids.append(torch.LongTensor(label_ids).to(device))
     
 
+
     eos_token_id = tokenizer.encode(tokenizer.eos_token)[0] # use this token for pad since gpt2 has no pad token
     batch_input_ids = torch.nn.utils.rnn.pad_sequence([torch.tensor(seq) for seq in batch_input_ids], batch_first=True, padding_value=eos_token_id)
     batch_label_ids = torch.nn.utils.rnn.pad_sequence([torch.tensor(seq) for seq in batch_label_ids], batch_first=True, padding_value=eos_token_id)

@@ -18,6 +18,8 @@ class NanoNextGPT(nn.Module):
         # Initialize Image Input Projection Layer
         self.input_projection = self.init_input_projection(config)
         self.input_projection.to(device)
+
+        self.layer_norm = nn.LayerNorm(config.gpt2_dim, eps=1e-12).to(device)
         
         # Initialize the gpt2 tokenizer
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2-medium")
@@ -35,9 +37,9 @@ class NanoNextGPT(nn.Module):
         # self.image_decoder.to(device)
         
     def init_image_encoder(self, config):
-        # Use a pre-trained ResNet-18 model and remove the last fully-connected layer to get a feature vector
-        resnet18 = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
-        modules = list(resnet18.children())[:-2]
+        resnet50 = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
+        modules = list(resnet50.children())[:-2]
+        modules.append(nn.AdaptiveAvgPool2d((1, 1)))  # Add adaptive pooling to make it (batch, 2048, 1, 1)
         return nn.Sequential(*modules)
     
     def init_input_projection(self, config):
@@ -51,13 +53,15 @@ class NanoNextGPT(nn.Module):
         model.to(device)
         return model
 
-    def prepare_image_embed(self, image_tensor, pos_in_seq):
-        # embed the image which is encoded and fed through a linear layer
+    def prepare_image_embed(self, image_tensor, pos_in_seq, device):
+        # Embed the image which is encoded and fed through a linear layer
         encoded_image = self.image_encoder(image_tensor)
-        flattened_encoded = torch.flatten(encoded_image, 1) # Flatten the image embedding to feed into linear layer
-        temp_embedding = self.input_projection(flattened_encoded).unsqueeze(1) # linear layer
-        pos = torch.arange(pos_in_seq, pos_in_seq +1, dtype=torch.long, device=device) # shape (t)
-        pos_emb = self.llm.transformer.wpe.weight[pos,:] # position embeddings of shape (t, n_embd)
+        encoded_image = torch.squeeze(encoded_image, -1)  # Remove the last dimension
+        encoded_image = torch.squeeze(encoded_image, -1)  # Remove the last dimension again
+        temp_embedding = self.input_projection(encoded_image).unsqueeze(1)  # Linear layer --> embedding
+        temp_embedding = self.layer_norm(temp_embedding)  # Apply Layer Normalization
+        pos = torch.arange(pos_in_seq, pos_in_seq + 1, dtype=torch.long, device=device)  # Shape (t)
+        pos_emb = self.llm.transformer.wpe.weight[pos, :]  # Position embeddings of shape (t, n_embd)
         img_embedding = temp_embedding + pos_emb
         return img_embedding
 
@@ -78,7 +82,7 @@ class NanoNextGPT(nn.Module):
         Forward pass for the model.
         """
         # Prepare the image embedding
-        img_embed = self.prepare_image_embed(image_tensor, 1)
+        img_embed = self.prepare_image_embed(image_tensor, 1, device=device)
         ids_before_img = input_ids[:, :1] # <Img>
         ids_after_img = input_ids[:, 1:] # </Img>caption: a picture of a cat...
         before_embed = self.get_text_embedding(ids_before_img, 0, 1)
