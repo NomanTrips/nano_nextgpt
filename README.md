@@ -1,1 +1,1 @@
-# Experimental multi modal model using gpt2 and resnet
+# Re-implementation of NextGPT - just images and text inbound
