@@ -39,7 +39,7 @@ def collate_fn_instruct(batch):
     tokenizer = AutoTokenizer.from_pretrained(llama_2_path, trust_remote_code=True, use_fast=True)
     new_tokens = ["<Img>", "</Img>"]
     tokenizer.add_tokens(new_tokens)
-    tokenizer.add_special_tokens({"pad_token":"<pad>"})
+    tokenizer.add_special_tokens({"pad_token":"<pad>"}) # use this token for pad since llama2 has no pad token
     tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
     
     # Separate captions and images from the batch
@@ -66,19 +66,14 @@ def collate_fn_instruct(batch):
                 input_ids.extend(tokens)
                 label_ids.extend(tokens)  # No masking for assistant's response
 
-        # Shift the labels for loss calculation
-        #label_ids =  label_ids[1:] +  [-100]
-
         batch_input_ids.append(input_ids)
         batch_label_ids.append(label_ids)
     
 
     batch_input_ids_tensors = [torch.tensor(ids).to(device) for ids in batch_input_ids]
     batch_label_ids_tensors = [torch.tensor(labels).to(device) for labels in batch_label_ids]
-    #batch_input_ids_tensors
-    #batch_label_ids_tensors
     
-    pad_token_id = tokenizer.encode(tokenizer.pad_token)[1] # use this token for pad since llama2 has no pad token
+    pad_token_id = tokenizer.encode(tokenizer.pad_token)[1]
     batch_input_ids = torch.nn.utils.rnn.pad_sequence(batch_input_ids_tensors, batch_first=True, padding_value=pad_token_id)
     batch_label_ids = torch.nn.utils.rnn.pad_sequence(batch_label_ids_tensors, batch_first=True, padding_value=pad_token_id)
     attention_mask = batch_input_ids.ne(pad_token_id).long()

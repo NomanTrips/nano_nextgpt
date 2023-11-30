@@ -38,13 +38,13 @@ def collate_fn(batch):
     - batch (List[Tuple[str, Tensor]]): List of tuples containing captions and image tensors.
     
     Returns:
-    - Dictionary containing tokenized input_ids, attention_mask, and image tensors.
+    - Dictionary containing tokenized input_ids, labels, attention_mask, and image tensors.
     """
     # Initialize Llama 2 tokenizer
     tokenizer = AutoTokenizer.from_pretrained(llama_2_path, trust_remote_code=True)
     new_tokens = ["<Img>", "</Img>"]
     tokenizer.add_tokens(new_tokens)
-    tokenizer.add_special_tokens({"pad_token":"<pad>"})
+    tokenizer.add_special_tokens({"pad_token":"<pad>"}) # use this token for pad since llama2 has no pad token
     tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
     
     # Separate captions and images from the batch
@@ -63,21 +63,16 @@ def collate_fn(batch):
         input_ids = torch.cat((input_ids, caption_ids), dim=1)
         labels = input_ids.clone()
         labels_clone = labels.clone()
-        #labels_clone.append(-100) # for image embedding added to input later
         b, s = labels_clone.shape
         minus_hundreds = torch.full((b, 1), -100).to(device)
         labels_clone = torch.cat((minus_hundreds, labels_clone), dim=1)
-        #labels[:, :-1] = labels_clone[:, 1:] # shift labels
-        #labels[:, -1] = -100 # set end to -100
         labels_clone[:, :len_prompt] = -100 # don't calc loss on human prompt
-        #ignore_indices = torch.full((len_prompt, 1), -100).to(device)
-        #labels = torch.cat((ignore_indices, labels), dim=1)
         batch_input_ids.append(input_ids[0])
         batch_label_ids.append(labels_clone[0])
     
 
 
-    pad_token_id = tokenizer.encode(tokenizer.pad_token)[1] # use this token for pad since llama2 has no pad token
+    pad_token_id = tokenizer.encode(tokenizer.pad_token)[1]
     batch_input_ids = torch.nn.utils.rnn.pad_sequence(batch_input_ids, batch_first=True, padding_value=pad_token_id)
     batch_label_ids = torch.nn.utils.rnn.pad_sequence(batch_label_ids, batch_first=True, padding_value=pad_token_id)
     attention_mask = batch_input_ids.ne(pad_token_id).long()
