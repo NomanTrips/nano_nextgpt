@@ -33,3 +33,9 @@ python train.py --train_instruct
 
 ## Data:
 - The data is basically from LLava which is just COCO 3m subsets with GPT-4 enhancing the textual portion and making it conversational. Basically any of the instruct.json data sets can be used. (set these in train.py at the bottom). DataLoading for stage 1 and DataLoadingInstruct for stage 2.
+- https://huggingface.co/datasets/jubba/nano_nextgpt_instruct
+- 'train_20k': this is for stage 1, training the linear layer to map from image bind embed to LLM embed
+- 'instruct': stage 2: end to end conversational data involving Q/A on images
+
+## Weights:
+- https://huggingface.co/jubba/nano_nextgpt
