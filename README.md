@@ -4,8 +4,8 @@
 This project is a re-implementation of NextGPT focusing solely on image and text modalities. It has been trained on a single RTX 3090 in a matter of a few hours. The model is capable of performing simple visual question answering tasks and is intended primarily for learning and experimentation purposes.
 
 ## Example
-**human**: Describe the image:
-![My Image](./assets/caillebotte_portraits.jpeg)
+**human**: Describe the image:<br>
+![My Image](./assets/caillebotte_portraits.jpeg)<br>
 **nano_nextgpt**: "The image shows a group of women sitting at a dining table outdoors, enjoying a meal together. The table is set with various items such as cups, forks, knives, and spoons. The women are dressed in formal attire, which suggests that the occasion might be a special event or a celebration. They are engaged in conversation, and some of them are smiling, indicating a pleasant atmosphere. The presence of a bench nearby also suggests that the setting is comfortable and inviting. The overall scene conveys a sense of camaraderie and enjoyment among the women."
 
 ## About NextGPT
